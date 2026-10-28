@@ -5,7 +5,7 @@ Standalone Next.js app for the store's Order Request and Inventory Cycle workflo
 ## Set up a separate Supabase project
 
 1. Create a new Supabase project—do not reuse CLM's.
-2. Run `supabase/migrations/202610280001_create_store_entries.sql` in its SQL editor.
+2. Run the files in `supabase/migrations/` in its SQL editor, in filename order. Optionally run `supabase/seed_products.sql` afterwards to load the sample product list.
 3. Copy `.env.example` to `.env.local` and add that project’s URL and anonymous key.
 4. Create a separate Vercel project with `store-operations` as its Root Directory and add the same two environment variables.
 
