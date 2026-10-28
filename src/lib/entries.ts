@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import type { Aisle, Department, StoreEntry } from "./types";
+import type { Aisle, Department, Product, StoreEntry } from "./types";
 
 const sample: StoreEntry[] = [
   { id: "sample-1", kind: "order_request", item_number: "753459939314", description: "Organic Red Kidney Beans Bombini 398ml", aisle: "Aisle 4", quantity_required: 12, status: "open", created_at: "2026-10-28T14:20:00Z" },
@@ -27,6 +27,16 @@ export async function listDepartments(): Promise<Department[]> {
 export async function listAisles(): Promise<Aisle[]> {
   if (supabase) { const { data, error } = await supabase.from("aisles").select("id, name").order("sort_order"); if (error) throw error; return data as Aisle[]; }
   return sampleAisles;
+}
+// Many item numbers lost their leading zeros in Excel (e.g. 41338201103 for barcode 041338201103),
+// so match the scanned code against every zero-padded form of it, preferring an exact match.
+export async function findProduct(code: string): Promise<Product | null> {
+  const scanned = code.trim(); if (!supabase || !scanned) return null;
+  const bare = scanned.replace(/^0+/, ""); const candidates = new Set([scanned]);
+  if (bare) for (let n = bare.length; n <= 14; n++) candidates.add(bare.padStart(n, "0"));
+  const { data, error } = await supabase.from("products").select("item_number, description").in("item_number", [...candidates]).limit(10);
+  if (error) throw error;
+  return data.find(p => p.item_number === scanned) ?? data[0] ?? null;
 }
 export async function createEntry(input: Omit<StoreEntry, "id" | "created_at" | "status">) {
   const entry: StoreEntry = { ...input, id: crypto.randomUUID(), created_at: new Date().toISOString(), status: "open" };

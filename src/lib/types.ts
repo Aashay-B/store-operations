@@ -1,5 +1,6 @@
 export type Department = { id: number; name: string };
 export type Aisle = { id: number; name: string };
+export type Product = { item_number: string; description: string };
 export type EntryKind = "order_request" | "inventory_cycle";
 export type StoreEntry = {
   id: string; kind: EntryKind; item_number: string; description: string; aisle: string;
