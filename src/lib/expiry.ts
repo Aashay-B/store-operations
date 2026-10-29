@@ -1,8 +1,11 @@
+import { cleanItemNumber } from "./entries";
 import type { StockLocation, StoreEntry } from "./types";
 
 export type LotLocation = StockLocation | "unspecified";
 export type Lot = {
-  key: string; item_number: string; description: string; aisle: string; department: string;
+  // product: the item number without leading zeros, so batches of one product match even when
+  // one count has the full barcode (076580004912) and another the Excel-trimmed one (76580004912).
+  key: string; product: string; item_number: string; description: string; aisle: string; department: string;
   location: LotLocation; best_before: string; on_hand: number; counted_at: string; days: number;
 };
 export type RotationIssue = { item_number: string; description: string; shelf: Lot; bin: Lot; gap: number };
@@ -20,6 +23,7 @@ export const NO_DEPARTMENT = "No department";
 export const parseDate = (date: string) => { const [y, m, d] = date.split("-").map(Number); return new Date(y, m - 1, d); };
 export const toDateInput = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 const daysBetween = (from: Date, to: Date) => Math.round((to.getTime() - from.getTime()) / 86400000);
+const productKey = (itemNumber: string) => { const clean = cleanItemNumber(itemNumber); return clean.replace(/^0+/, "") || clean; };
 
 // Each inventory count records what was on hand for one batch (item + shelf/bin + best-before date) at that
 // moment, so a batch's stock as of a date is its most recent count on or before that date. Batches last
@@ -30,14 +34,14 @@ export function currentLots(entries: StoreEntry[], asOf: string): Lot[] {
   const latest = new Map<string, StoreEntry>();
   for (const entry of entries) {
     if (entry.kind !== "inventory_cycle" || !entry.best_before || new Date(entry.created_at) >= cutoff) continue;
-    const key = `${entry.item_number}|${entry.location ?? "unspecified"}|${entry.best_before}`;
+    const key = `${productKey(entry.item_number)}|${entry.location ?? "unspecified"}|${entry.best_before}`;
     const previous = latest.get(key);
     if (!previous || previous.created_at < entry.created_at) latest.set(key, entry);
   }
   return [...latest.entries()]
     .filter(([, entry]) => (entry.on_hand ?? 0) > 0)
     .map(([key, entry]) => ({
-      key, item_number: entry.item_number, description: entry.description, aisle: entry.aisle,
+      key, product: productKey(entry.item_number), item_number: cleanItemNumber(entry.item_number), description: entry.description, aisle: entry.aisle,
       department: entry.department || NO_DEPARTMENT, location: entry.location ?? "unspecified",
       best_before: entry.best_before!, on_hand: entry.on_hand!, counted_at: entry.created_at,
       days: daysBetween(asOfDate, parseDate(entry.best_before!)),
@@ -49,10 +53,10 @@ export function rotationIssues(lots: Lot[]): RotationIssue[] {
   const soonest = new Map<string, Partial<Record<StockLocation, Lot>>>();
   for (const lot of lots) {
     if (lot.location === "unspecified") continue;
-    const item = soonest.get(lot.item_number) ?? {};
+    const item = soonest.get(lot.product) ?? {};
     const current = item[lot.location];
     if (!current || lot.best_before < current.best_before) item[lot.location] = lot;
-    soonest.set(lot.item_number, item);
+    soonest.set(lot.product, item);
   }
   return [...soonest.values()]
     .filter((item): item is Record<StockLocation, Lot> => !!item.shelf && !!item.bin && item.bin.best_before < item.shelf.best_before)

@@ -38,8 +38,12 @@ export async function listAisles(): Promise<Aisle[]> {
   if (supabase) { const { data, error } = await supabase.from("aisles").select("id, name").order("sort_order"); if (error) throw error; return data as Aisle[]; }
   return sampleAisles;
 }
+// Scanners and copy-paste can leave invisible characters (spaces, tabs, line breaks, zero-width
+// characters) around an item number, which stops it matching the same product elsewhere.
+export const cleanItemNumber = (value: string) => value.replace(/[\u0000-\u001F\u007F-\u009F​-‍﻿]/g, "").trim();
+
 export async function createEntry(input: Omit<StoreEntry, "id" | "created_at" | "status">) {
-  const entry: StoreEntry = { ...input, id: crypto.randomUUID(), created_at: new Date().toISOString(), status: "open" };
+  const entry: StoreEntry = { ...input, item_number: cleanItemNumber(input.item_number), id: crypto.randomUUID(), created_at: new Date().toISOString(), status: "open" };
   if (supabase) { const { error } = await supabase.from("store_entries").insert(entry); if (error) throw error; return; }
   const current = await listEntries(); window.localStorage.setItem(localKey, JSON.stringify([entry, ...current.filter(x => !x.id.startsWith("sample-"))]));
 }
