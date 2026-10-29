@@ -30,6 +30,18 @@ const lotValue = (lot: Lot, prices: Prices) => prices.has(lot.item_number) ? lot
 const totalValue = (lots: Lot[], prices: Prices) => lots.reduce((n, lot) => n + (lotValue(lot, prices) ?? 0), 0);
 const unpricedCount = (lots: Lot[], prices: Prices) => lots.filter((lot) => !prices.has(lot.item_number)).length;
 
+// Hover shows a mark's tooltip with a mouse. On touch screens, tapping a mark focuses it and the tooltip
+// stays open until something else is tapped (a touch "leave" fires straight after the tap).
+function hoverProps<T>(id: T, setActive: (id: T | null) => void) {
+  return {
+    tabIndex: 0,
+    onPointerEnter: (e: React.PointerEvent) => { if (e.pointerType === "mouse") setActive(id); },
+    onPointerLeave: (e: React.PointerEvent) => { if (e.pointerType === "mouse") setActive(null); },
+    onFocus: () => setActive(id),
+    onBlur: () => setActive(null),
+  };
+}
+
 // A round axis maximum with an even midpoint, so both gridline labels are clean numbers.
 function niceMax(value: number) {
   if (value <= 2) return 2;
@@ -197,9 +209,8 @@ function ExpiryCalendar({ weeks, fmtAmount, fmtAxis }: { weeks: WeekBucket[]; fm
         <div className="col-plot">
           <div className="col-grid" aria-hidden="true">{[0, 0.5, 1].map((f) => <div key={f} className={`gridline${f === 0 ? " baseline" : ""}`} style={{ bottom: `${f * 100}%` }} />)}</div>
           {weeks.map((w, i) => (
-            <div key={i} className={`col${active === i ? " active" : ""}`} tabIndex={0}
-              aria-label={`Week of ${w.label}: ${fmtAmount(w.total)}${series.map((s) => `, ${s.label} ${fmtAmount(w[s.key])}`).join("")}`}
-              onPointerEnter={() => setActive(i)} onPointerLeave={() => setActive(null)} onFocus={() => setActive(i)} onBlur={() => setActive(null)}>
+            <div key={i} className={`col${active === i ? " active" : ""}`} {...hoverProps(i, setActive)}
+              aria-label={`Week of ${w.label}: ${fmtAmount(w.total)}${series.map((s) => `, ${s.label} ${fmtAmount(w[s.key])}`).join("")}`}>
               <div className="col-bars">
                 {w.total > 0 && <div className="col-stack" style={{ height: `${(w.total / max) * 100}%` }}>
                   {series.filter((s) => w[s.key] > 0).map((s) => <div key={s.key} className={`seg ${s.key}`} style={{ flexGrow: w[s.key] }} />)}
@@ -236,8 +247,8 @@ function DepartmentBars({ rows, fmtAmount }: { rows: DepartmentRow[]; fmtAmount:
   return (
     <div className="hbar-chart">
       {rows.map((r) => (
-        <div key={r.name} className={`hbar${active === r.name ? " active" : ""}`} tabIndex={0} aria-label={`${r.name}: ${fmtAmount(r.amount)}, ${r.units} units in ${r.lots} batches`}
-          onPointerEnter={() => setActive(r.name)} onPointerLeave={() => setActive(null)} onFocus={() => setActive(r.name)} onBlur={() => setActive(null)}>
+        <div key={r.name} className={`hbar${active === r.name ? " active" : ""}`} {...hoverProps(r.name, setActive)}
+          aria-label={`${r.name}: ${fmtAmount(r.amount)}, ${r.units} units in ${r.lots} batches`}>
           <span className="hbar-label">{r.name}</span>
           <div className="hbar-track">
             <div className="hbar-area">
@@ -266,11 +277,11 @@ function LotTable({ title, note, lots, prices, hasPrices, empty }: { title: stri
               return (
                 <tr key={lot.key}>
                   <td><b>{lot.description}</b><small>#{lot.item_number} · {lot.department}</small></td>
-                  <td>{locationLabel(lot.location)}<small>{lot.aisle}</small></td>
-                  <td className="num">{lot.on_hand.toLocaleString()}</td>
-                  <td>{fmtDate(lot.best_before)}<small><span className={`days-left ${tone(lot.days)}`}>{lot.days < 0 && <AlertTriangle size={11} />} {daysText(lot.days)}</span></small></td>
-                  <td className="num">{value === null ? <span title="Not found in the products list">No price</span> : <>{fmtMoney(value)}<small>{fmtMoney(prices.get(lot.item_number)!)} each</small></>}</td>
-                  <td>{new Date(lot.counted_at).toLocaleDateString()}</td>
+                  <td data-label="Location"><div>{locationLabel(lot.location)}<small>{lot.aisle}</small></div></td>
+                  <td data-label="Units" className="num"><div>{lot.on_hand.toLocaleString()}</div></td>
+                  <td data-label="Best before"><div>{fmtDate(lot.best_before)}<small><span className={`days-left ${tone(lot.days)}`}>{lot.days < 0 && <AlertTriangle size={11} />} {daysText(lot.days)}</span></small></div></td>
+                  <td data-label="Retail value" className="num"><div>{value === null ? <span title="Not found in the products list">No price</span> : <>{fmtMoney(value)}<small>{fmtMoney(prices.get(lot.item_number)!)} each</small></>}</div></td>
+                  <td data-label="Last counted"><div>{new Date(lot.counted_at).toLocaleDateString()}</div></td>
                 </tr>
               );
             })}</tbody>
@@ -293,9 +304,9 @@ function RotationTable({ issues, prices }: { issues: RotationIssue[]; prices: Pr
             <tbody>{issues.map((issue) => (
               <tr key={issue.item_number}>
                 <td><b>{issue.description}</b><small>#{issue.item_number}</small></td>
-                <td>{fmtDate(issue.bin.best_before)}<small>{withValue(issue.bin)}</small></td>
-                <td>{fmtDate(issue.shelf.best_before)}<small>{withValue(issue.shelf)}</small></td>
-                <td className="num">{issue.gap.toLocaleString()}</td>
+                <td data-label="Bin batch"><div>{fmtDate(issue.bin.best_before)}<small>{withValue(issue.bin)}</small></div></td>
+                <td data-label="Shelf batch"><div>{fmtDate(issue.shelf.best_before)}<small>{withValue(issue.shelf)}</small></div></td>
+                <td data-label="Days apart" className="num"><div>{issue.gap.toLocaleString()}</div></td>
               </tr>
             ))}</tbody>
           </table>
