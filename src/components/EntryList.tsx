@@ -15,6 +15,11 @@ const localDate = (date: string) => { const [y, m, d] = date.split("-").map(Numb
 const daysUntil = (date: string) => { const today = new Date(); today.setHours(0, 0, 0, 0); return Math.round((localDate(date).getTime() - today.getTime()) / 86400000); };
 const daysLeft = (days: number) => days === 0 ? "Expires today" : days === 1 ? "Expires tomorrow" : `${days} days left`;
 const EXPIRY_WINDOW = 30;
+const EXPIRY_GROUPS = [
+  { title: "Expiring this week", note: "best before within 7 days", min: 0, max: 7, tone: "urgent" },
+  { title: "Expiring in 8–14 days", note: "best before in the next two weeks", min: 8, max: 14, tone: "soon" },
+  { title: "Expiring in 15–30 days", note: "best before later this month", min: 15, max: EXPIRY_WINDOW, tone: "" },
+];
 
 export default function EntryList({ kind }: { kind: EntryKind }) {
   const orders = kind === "order_request";
@@ -53,21 +58,35 @@ export default function EntryList({ kind }: { kind: EntryKind }) {
       </section>
       {!isConfigured() && <div className="notice">Demo mode is on. Add your standalone Supabase keys to <code>.env.local</code> before deploying.</div>}
       <section className="content">
-        {!orders && !error && (
-          <div className="panel expiry-panel">
-            <div className="panel-head">
-              <div><p className="eyebrow">BEST-BEFORE ALERTS</p><h2>Expiring in the next {EXPIRY_WINDOW} days</h2></div>
-              <p className="panel-count">{loading ? "Loading…" : `${expiring.length} item${expiring.length === 1 ? "" : "s"}`}</p>
-            </div>
-            {expiring.map(({ entry, days }) => (
-              <article className="record" key={entry.id}>
-                <div className="record-symbol">IC</div>
-                <div className="record-body"><div><b>{entry.description}</b></div><p>#{entry.item_number} · {entry.aisle}{entry.department ? ` · ${entry.department}` : ""} · {entry.on_hand} on hand</p></div>
-                <div className="record-value"><span className={`days-left${days <= 7 ? " urgent" : ""}`}>{daysLeft(days)}</span><small>Best before {localDate(entry.best_before!).toLocaleDateString()}</small></div>
-                <span />
-              </article>
-            ))}
-            {!loading && expiring.length === 0 && <p className="empty">Nothing expires in the next {EXPIRY_WINDOW} days.</p>}
+        {!orders && !error && !loading && (
+          <div className="expiry">
+            <h2 className="section-title">Expiring in the next {EXPIRY_WINDOW} days</h2>
+            {expiring.length === 0 && <div className="panel"><p className="empty">Nothing expires in the next {EXPIRY_WINDOW} days.</p></div>}
+            {EXPIRY_GROUPS.map((group) => {
+              const items = expiring.filter(({ days }) => days >= group.min && days <= group.max);
+              if (!items.length) return null;
+              return (
+                <section className={`expiry-group ${group.tone}`} key={group.title}>
+                  <div className="expiry-group-head"><b>{group.title}</b><span>{items.length} item{items.length === 1 ? "" : "s"} · {group.note}</span></div>
+                  <div className="expiry-cols" aria-hidden="true"><span>Product</span><span>On hand</span><span>Location</span><span>Best before</span></div>
+                  {items.map(({ entry, days }) => (
+                    <div className="expiry-row" key={entry.id}>
+                      <div>
+                        <b>{entry.description}</b>
+                        <p>#{entry.item_number}</p>
+                        <div className="chips">
+                          <span className="chip">Counted {new Date(entry.created_at).toLocaleDateString()}</span>
+                          <span className={`days-left ${group.tone}`}>{daysLeft(days)}</span>
+                        </div>
+                      </div>
+                      <div data-label="On hand">{entry.on_hand}</div>
+                      <div data-label="Location">{entry.aisle}{entry.department && <small>{entry.department}</small>}</div>
+                      <div data-label="Best before">{localDate(entry.best_before!).toLocaleDateString()}</div>
+                    </div>
+                  ))}
+                </section>
+              );
+            })}
           </div>
         )}
         <div className="panel">
