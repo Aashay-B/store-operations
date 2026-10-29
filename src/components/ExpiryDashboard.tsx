@@ -145,7 +145,7 @@ export default function ExpiryDashboard() {
             <Kpi icon={<Star size={18} />} label="Highest-value batch expiring" value={biggest ? fmtMoney(lotValue(biggest, prices)!) : "—"}
               sub={biggest ? `${biggest.description} · ${daysText(biggest.days).toLowerCase()}` : "No priced batches in this window"} />
             <Kpi icon={<RefreshCw size={18} />} tone={rotation.length ? "serious" : undefined} label="Rotation issues" value={rotation.length.toLocaleString()}
-              sub={rotation.length && hasPrices ? `${valueOrDash(rotation.map((r) => r.bin))} of older stock in the bin` : "Bin stock older than the shelf"} />
+              sub={rotation.length ? `${plural(sumUnits(rotation.map((r) => r.bin)), "unit")} of older stock in the bin` : "Bin stock older than the shelf"} />
           </div>
 
           <div className="chart-grid">
