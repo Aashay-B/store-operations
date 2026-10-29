@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ClipboardList, PackageCheck, Plus, ScanLine } from "lucide-react";
+import { CalendarClock, ClipboardList, PackageCheck, Plus, ScanLine } from "lucide-react";
 import Shell from "./Shell";
 import { isConfigured, listEntries } from "@/lib/entries";
 import type { StoreEntry } from "@/lib/types";
@@ -31,6 +31,7 @@ export default function StoreDashboard() {
           <Link className="action-btn primary-action" href="/store-ops/new"><Plus size={18} /> Create an entry</Link>
           <Link className="action-btn" href="/store-ops/orders"><PackageCheck size={18} /> View order requests</Link>
           <Link className="action-btn" href="/store-ops/inventory"><ScanLine size={18} /> View received inventory</Link>
+          <Link className="action-btn" href="/store-ops/expiry"><CalendarClock size={18} /> Expiry dashboard</Link>
         </div>
       </section>
     </Shell>

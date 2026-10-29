@@ -31,12 +31,13 @@ function orderSheet(entries: StoreEntry[]) {
 }
 
 function inventorySheet(entries: StoreEntry[]) {
-  const header = ["Date", "Item number", "Description", "Aisle", "Department", "On hand", "Best before", "Status"].map(value => ({ value, fontWeight: "bold" as const }));
+  const header = ["Date", "Item number", "Description", "Aisle", "Department", "Shelf / bin", "On hand", "Best before", "Status"].map(value => ({ value, fontWeight: "bold" as const }));
   const rows = entries.map(e => [
     { value: localTime(e.created_at), type: Date, format: "yyyy-mm-dd hh:mm" }, text(e.item_number), text(e.description), text(e.aisle),
-    text(e.department), number(e.on_hand), { value: e.best_before ? new Date(e.best_before) : undefined, type: Date, format: "yyyy-mm-dd" }, text(e.status),
+    text(e.department), text(e.location === "shelf" ? "Shelf" : e.location === "bin" ? "Bin" : undefined), number(e.on_hand),
+    { value: e.best_before ? new Date(e.best_before) : undefined, type: Date, format: "yyyy-mm-dd" }, text(e.status),
   ]);
-  return { data: [header, ...rows], widths: [18, 16, 44, 22, 16, 10, 14, 12] };
+  return { data: [header, ...rows], widths: [18, 16, 44, 22, 16, 11, 10, 14, 12] };
 }
 
 export async function downloadEntries(entries: StoreEntry[], kind: EntryKind) {

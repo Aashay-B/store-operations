@@ -80,7 +80,7 @@ export default function EntryList({ kind }: { kind: EntryKind }) {
                         </div>
                       </div>
                       <div data-label="On hand">{entry.on_hand}</div>
-                      <div data-label="Location">{entry.aisle}{entry.department && <small>{entry.department}</small>}</div>
+                      <div data-label="Location">{entry.location ? `${entry.location === "shelf" ? "Shelf" : "Bin"} · ` : ""}{entry.aisle}{entry.department && <small>{entry.department}</small>}</div>
                       <div data-label="Best before">{localDate(entry.best_before!).toLocaleDateString()}</div>
                     </div>
                   ))}
@@ -101,7 +101,7 @@ export default function EntryList({ kind }: { kind: EntryKind }) {
             {shown.map((entry) => (
               <article className="record" key={entry.id}>
                 <div className="record-symbol">{orders ? "OR" : "IC"}</div>
-                <div className="record-body"><div><b>{entry.description}</b><span className="status">{entry.status}</span></div><p>#{entry.item_number} · {entry.aisle}{entry.department ? ` · ${entry.department}` : ""}{entry.best_before ? ` · Best before ${localDate(entry.best_before).toLocaleDateString()}` : ""}</p></div>
+                <div className="record-body"><div><b>{entry.description}</b><span className="status">{entry.status}</span></div><p>#{entry.item_number} · {entry.aisle}{entry.department ? ` · ${entry.department}` : ""}{entry.location ? ` · ${entry.location === "shelf" ? "Shelf" : "Bin"}` : ""}{entry.best_before ? ` · Best before ${localDate(entry.best_before).toLocaleDateString()}` : ""}</p></div>
                 <div className="record-value">{orders ? `${entry.quantity_required} requested` : `${entry.on_hand} on hand`}<small>{new Date(entry.created_at).toLocaleDateString()}</small></div>
                 <ArrowUpRight size={18} />
               </article>
