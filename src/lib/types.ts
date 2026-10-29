@@ -1,6 +1,10 @@
 export type Department = { id: number; name: string };
 export type Aisle = { id: number; name: string };
-export type Product = { item_number: string; description: string };
+export type Product = {
+  id: string; item_number: string; description: string; uip: number; reg_price: number;
+  department_id: number | null; begin_date: string | null; end_date: string | null;
+};
+export type ProductInput = Omit<Product, "id">;
 export type EntryKind = "order_request" | "inventory_cycle";
 export type StoreEntry = {
   id: string; kind: EntryKind; item_number: string; description: string; aisle: string;
