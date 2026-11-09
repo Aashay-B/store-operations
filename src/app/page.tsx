@@ -1,4 +1,5 @@
-import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 
-// Keep the root URL available for future products; this application lives at /store-ops.
-export default function RootPage() { notFound(); }
+// Send visitors to the sign-in flow instead of showing a 404 at the site root.
+// LoginPage forwards an existing authenticated session to /store-ops.
+export default function RootPage() { redirect("/store-ops/login"); }
