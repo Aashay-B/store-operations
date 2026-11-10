@@ -5,9 +5,13 @@ import { supabase } from "./supabase";
 export const LOGIN_DOMAIN = "cioffis.local";
 const toEmail = (username: string) => username.includes("@") ? username.trim() : `${username.trim().toLowerCase()}@${LOGIN_DOMAIN}`;
 
-export async function signIn(username: string, password: string) {
+export async function signIn(username: string, password: string, captchaToken: string) {
   if (!supabase) throw new Error("Supabase is not configured.");
-  const { error } = await supabase.auth.signInWithPassword({ email: toEmail(username), password });
+  const { error } = await supabase.auth.signInWithPassword({
+    email: toEmail(username),
+    password,
+    options: { captchaToken },
+  });
   if (error) throw error;
 }
 

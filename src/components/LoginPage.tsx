@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { LogIn } from "lucide-react";
 import { signIn } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
+import Turnstile from "@/components/Turnstile";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -13,15 +14,23 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [turnstileResetKey, setTurnstileResetKey] = useState(0);
 
   useEffect(() => { supabase?.auth.getSession().then(({ data }) => { if (data.session) router.replace("/store-ops"); }); }, [router]);
 
   async function submit(e: FormEvent) {
-    e.preventDefault(); setBusy(true); setError("");
-    try { await signIn(username, password); router.replace("/store-ops"); }
+    e.preventDefault();
+    if (!turnstileToken) {
+      setError("Please complete the security check before logging in.");
+      return;
+    }
+    setBusy(true); setError("");
+    try { await signIn(username, password, turnstileToken); router.replace("/store-ops"); }
     catch (err) {
       console.error("Sign-in failed:", err);
       setError((err as { code?: string })?.code === "invalid_credentials" ? "Incorrect username or password." : "Couldn’t sign in. Please check the connection and try again.");
+      setTurnstileResetKey((key) => key + 1);
       setBusy(false);
     }
   }
@@ -39,8 +48,9 @@ export default function LoginPage() {
             <h1>Log in to Store Ops</h1>
             <label><span>Username</span><input required autoFocus autoComplete="username" autoCapitalize="none" spellCheck={false} value={username} onChange={(e) => setUsername(e.target.value)} /></label>
             <label><span>Password</span><input required type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} /></label>
+            <Turnstile onToken={setTurnstileToken} resetKey={turnstileResetKey} />
             {error && <p className="login-error" role="alert">{error}</p>}
-            <button className="submit" disabled={busy}>{busy ? "Logging in…" : <><LogIn size={17} /> Log in</>}</button>
+            <button className="submit" disabled={busy || !turnstileToken}>{busy ? "Logging in…" : <><LogIn size={17} /> Log in</>}</button>
             <p className="login-help">Need an account? Ask a manager to set one up.</p>
           </form>
         ) : (
